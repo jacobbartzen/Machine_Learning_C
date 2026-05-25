@@ -237,11 +237,8 @@ int main() {
             //Calculate Total Error: Label - Preactivation Output Neuron Value
             eTotal = y[i] - Z[layers - 1][0];
 
-            //Absolute Value of Error
-            if (eTotal < 0) eTotal *= -1;
-
             //Calculate Average Error for Prints
-            eTrainingAvg += eTotal / y[i];
+            eTrainingAvg += fabs(eTotal / y[i]);
 
             // --- Backpropagation ---
 
