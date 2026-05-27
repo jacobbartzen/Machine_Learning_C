@@ -13,11 +13,11 @@
 
 //Training
 #define EPOCHS 1000                  //Amount of Times to Go Through Entire Dataset
-#define LEARNING_RATE 0.7            //How Fast Weights change based on Error
-#define PRINT_INTERVAL 200           //How Often to Print Results (in Epochs)
+#define LEARNING_RATE 0.00075            //How Fast Weights change based on Error
+#define PRINT_INTERVAL 5           //How Often to Print Results (in Epochs)
 #define MIN_STOPPING_EPOCH 50        //Minimum Epochs before Early Stopping can Occur
-#define dropoutChance  0.05          //Chance to drop each neuron during training - 0 is 0%, 1 is 100% change of dropping
-#define maxNorm 0.7                  //Maximum norm for weights if maxNormRegulation is enabled
+#define dropoutChance  0.5          //Chance to drop each neuron during training - 0 is 0%, 1 is 100% change of dropping
+#define maxNorm 1.5                  //Maximum norm for weights if maxNormRegulation is enabled
 #define momentumDecay 0.90           //Momentum factor
 #define scalingDecay 0.9990          //Scaling factor for learning rate decay
 
@@ -27,9 +27,9 @@ bool dropout = false;                //Whether to randomly drop neurons during t
 bool maxNormRegulation = false;      //Whether to cap weights to prevent exploding gradients and overfitting
 
 //Optimizers (ONLY SET 1 TO TRUE)    //Optimal Learning Rate for Optimizer
-bool adamOptimizer = false;          //Learning Rate: 0.0003
+bool adamOptimizer = true;          //Learning Rate: 0.0003
 bool RMSPropOptimizer = false;       //Learning Rate: 0.00005
-bool momentumOptimizer = true;       //Learning Rate: 0.5
+bool momentumOptimizer = false;       //Learning Rate: 0.5
 //No Opimizer (Set all to false)     //Learning Rate: 0.2
 
 //Architecture
@@ -131,7 +131,7 @@ int main() {
     }
 
     //All varibles needed later
-    float eTotal = 0, eTrainingAvg = 0, lastEAvg = 1000, eTestingAvg = 0, hiddenError = 0, scale = 0, currentGradient = 0, loops = 0, correctedA, correctedB = 0;
+    float eTotal = 0, eTrainingAvg = 0, lastEAvg = 1000, eTestingAvg = 0, hiddenError = 0, scale = 0, currentGradient = 0, loops = 0, correctedA, correctedB = 0, weightLength = 0;
 
     // --- Find all maxes ---
     //Set max values to 0
@@ -273,6 +273,8 @@ int main() {
                 //For each neuron
                 for (int k = 0; k < neuronLayers[j]; k++) {
 
+                    weightLength = 0;
+
                     //If using an optimizer
                     if (momentumOptimizer || RMSPropOptimizer || adamOptimizer) {
 
@@ -371,7 +373,16 @@ int main() {
                         else W[j][k][z] += LEARNING_RATE * currentGradient;
 
                         //Max Norm Regulation - Limit the maximum norm of the weights to prevent exploding gradients
-                        if (maxNormRegulation && fabs(W[j][k][z]) > maxNorm) W[j][k][z] = maxNorm;
+                        if (maxNormRegulation) weightLength += W[j][k][z] * W[j][k][z];
+                    }
+
+                    if (maxNormRegulation) {
+                        weightLength = sqrt(weightLength);
+                        if (weightLength > maxNorm) {
+                            for (int z = 0; z < loops; z++) {
+                                W[j][k][z] = maxNorm;
+                            }
+                        }
                     }
                 }
             }
@@ -418,12 +429,22 @@ int main() {
 
                 //Set neuron value to bias
                 Z[j][k] = B[j][k];
+                
+                if (dropout) {
+                    //If first layer, use inputs
+                    if (j == 0) for (int z = 0; z < INPUT_SIZE; z++) Z[j][k] += x[i][z] * W[j][k][z] / (1 - dropoutChance);
 
-                //If first layer, use inputs
-                if (j == 0) for (int z = 0; z < INPUT_SIZE; z++) Z[j][k] += x[i][z] * W[j][k][z];
+                    //Else, use outputs from previous layer
+                    else for (int z = 0; z < neuronLayers[j - 1]; z++) Z[j][k] += A[j - 1][z] * W[j][k][z] / (1 - dropoutChance);
+                }
 
-                //Else, use outputs from previous layer
-                else for (int z = 0; z < neuronLayers[j - 1]; z++) Z[j][k] += A[j - 1][z] * W[j][k][z];
+                else {
+                    //If first layer, use inputs
+                    if (j == 0) for (int z = 0; z < INPUT_SIZE; z++) Z[j][k] += x[i][z] * W[j][k][z];
+
+                    //Else, use outputs from previous layer
+                    else for (int z = 0; z < neuronLayers[j - 1]; z++) Z[j][k] += A[j - 1][z] * W[j][k][z];
+                }
 
                 //Activation Function: Leaky ReLU
                 A[j][k] = (Z[j][k] > 0) ? Z[j][k] : 0.01f * Z[j][k];
