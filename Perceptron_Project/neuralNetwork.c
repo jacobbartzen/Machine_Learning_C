@@ -13,27 +13,30 @@
 
 //Training
 #define EPOCHS 1000                  //Amount of Times to Go Through Entire Dataset
-#define LEARNING_RATE 0.00075            //How Fast Weights change based on Error
+#define LEARNING_RATE 0.5            //How Fast Weights change based on Error
 #define PRINT_INTERVAL 5           //How Often to Print Results (in Epochs)
 #define MIN_STOPPING_EPOCH 50        //Minimum Epochs before Early Stopping can Occur
-#define dropoutChance  0.5          //Chance to drop each neuron during training - 0 is 0%, 1 is 100% change of dropping
+#define dropoutChance  0.5           //Chance to drop each neuron during training - 0 is 0%, 1 is 100% change of dropping
 #define maxNorm 1.5                  //Maximum norm for weights if maxNormRegulation is enabled
 #define momentumDecay 0.90           //Momentum factor
-#define scalingDecay 0.9990          //Scaling factor for learning rate decay
+#define scalingDecay 0.9900          //Scaling factor for learning rate decay
 
 //Features
 bool earlyStopping = false;          //Whether to Stop Training if Error stops decreasing
 bool dropout = false;                //Whether to randomly drop neurons during training to prevent overfitting
-bool maxNormRegulation = false;      //Whether to cap weights to prevent exploding gradients and overfitting
+bool maxNormRegulation = true;      //Whether to cap weights to prevent exploding gradients and overfitting
 
 //Optimizers (ONLY SET 1 TO TRUE)    //Optimal Learning Rate for Optimizer
-bool adamOptimizer = true;          //Learning Rate: 0.0003
+bool adamOptimizer = false;          //Learning Rate: 0.0003
 bool RMSPropOptimizer = false;       //Learning Rate: 0.00005
 bool momentumOptimizer = false;       //Learning Rate: 0.5
 //No Opimizer (Set all to false)     //Learning Rate: 0.2
 
 //Architecture
 int neuronLayers[] = {50, 20, 1};    //Array of Neuron Counts for Each Layer
+
+// Calculate layers
+int layers = sizeof(neuronLayers) / sizeof(neuronLayers[0]);
 
 //INPUTS: Sq footage, bedrooms, yard size
 float x[DATA_SIZE][INPUT_SIZE] = {
@@ -65,13 +68,15 @@ float x[DATA_SIZE][INPUT_SIZE] = {
 //Non-Linear Labels
 float y[] = {95000, 210000, 125000, 480000, 890000, 370000, 2100000, 175000, 1400000, 72000, 460000, 1850000, 240000, 750000, 52000, 420000, 1150000, 162000, 2800000, 580000};
 
+//Function Prototypes
+void testNetwork(float ***W, float **B, float **A, float **Z);
+void freeMemory(float ***W, float **A, float **B, float **Z, float **D);
+void normalizeData(float *maxValues);
+
 int main() {
 
     //Max Values for Normalization
-    float maxValues[INPUT_SIZE + 1];
-
-    //Calculate layers
-    int layers = sizeof(neuronLayers) / sizeof(neuronLayers[0]);
+    float *maxValues = malloc(sizeof(float) * (INPUT_SIZE + 1));
 
     // ---------- Loop to declare all arrays needed to heap ----------
     //Weights
@@ -131,33 +136,10 @@ int main() {
     }
 
     //All varibles needed later
-    float eTotal = 0, eTrainingAvg = 0, lastEAvg = 1000, eTestingAvg = 0, hiddenError = 0, scale = 0, currentGradient = 0, loops = 0, correctedA, correctedB = 0, weightLength = 0;
+    float eTotal = 0, eTrainingAvg = 0, lastEAvg = 1000, hiddenError = 0, scale = 0, currentGradient = 0, loops = 0, correctedA, correctedB = 0, weightLength = 0;
 
-    // --- Find all maxes ---
-    //Set max values to 0
-    for (int i = 0; i < INPUT_SIZE + 1; i++) maxValues[i] = 0;
-
-    //Loop through data to find max of each input and output
-    for (int i = 0; i < DATA_SIZE; i++) {
-
-        //Find max of inputs
-        for (int j = 0; j < INPUT_SIZE; j++) {
-            if (x[i][j] > maxValues[j]) maxValues[j] = x[i][j];
-        }
-
-        //Find max of outputs
-        if (y[i] > maxValues[INPUT_SIZE]) maxValues[INPUT_SIZE] = y[i];
-    }
-
-    //Loop through all data and divide by max
-    for (int i = 0; i < DATA_SIZE; i++) {
-
-        //Divide inputs by max
-        for (int j = 0; j < INPUT_SIZE; j++) x[i][j] /= maxValues[j];
-
-        //Divide output by max
-        y[i] /= maxValues[INPUT_SIZE];
-    }
+    //Function to Normalize inputs and labels
+    normalizeData(maxValues);
 
     //Seed Random Number Generator
     srand(time(NULL));
@@ -418,6 +400,52 @@ int main() {
         lastEAvg = eTrainingAvg;
     }
 
+    //Test Network
+    testNetwork(W, B, A, Z);
+
+    //Free memory when program is done
+    freeMemory(W, B, A, Z, D);
+
+    return 0;
+}
+
+void normalizeData(float *maxValues) {
+
+    // --- Find all maxes ---
+    // Set max values to 0
+    for (int i = 0; i < INPUT_SIZE + 1; i++)
+        maxValues[i] = 0;
+
+    // Loop through data to find max of each input and output
+    for (int i = 0; i < DATA_SIZE; i++) {
+
+        // Find max of inputs
+        for (int j = 0; j < INPUT_SIZE; j++) {
+            if (x[i][j] > maxValues[j])
+                maxValues[j] = x[i][j];
+        }
+
+        // Find max of outputs
+        if (y[i] > maxValues[INPUT_SIZE])
+            maxValues[INPUT_SIZE] = y[i];
+    }
+
+    // Loop through all data and divide by max
+    for (int i = 0; i < DATA_SIZE; i++) {
+
+        // Divide inputs by max
+        for (int j = 0; j < INPUT_SIZE; j++)
+            x[i][j] /= maxValues[j];
+
+        // Divide output by max
+        y[i] /= maxValues[INPUT_SIZE];
+    }
+}
+
+void testNetwork(float ***WW, float **BB, float **AA, float **ZZ) {
+
+    float eTestingAvg = 0;
+
     //Loop through testing data
     for (int i = TRAINING_SIZE; i < DATA_SIZE; i++) {
 
@@ -428,37 +456,40 @@ int main() {
             for (int k = 0; k < neuronLayers[j]; k++) {
 
                 //Set neuron value to bias
-                Z[j][k] = B[j][k];
+                ZZ[j][k] = BB[j][k];
                 
                 if (dropout) {
                     //If first layer, use inputs
-                    if (j == 0) for (int z = 0; z < INPUT_SIZE; z++) Z[j][k] += x[i][z] * W[j][k][z] / (1 - dropoutChance);
+                    if (j == 0) for (int z = 0; z < INPUT_SIZE; z++) ZZ[j][k] += x[i][z] * WW[j][k][z] / (1 - dropoutChance);
 
                     //Else, use outputs from previous layer
-                    else for (int z = 0; z < neuronLayers[j - 1]; z++) Z[j][k] += A[j - 1][z] * W[j][k][z] / (1 - dropoutChance);
+                    else for (int z = 0; z < neuronLayers[j - 1]; z++) ZZ[j][k] += AA[j - 1][z] * WW[j][k][z] / (1 - dropoutChance);
                 }
 
                 else {
                     //If first layer, use inputs
-                    if (j == 0) for (int z = 0; z < INPUT_SIZE; z++) Z[j][k] += x[i][z] * W[j][k][z];
+                    if (j == 0) for (int z = 0; z < INPUT_SIZE; z++) ZZ[j][k] += x[i][z] * WW[j][k][z];
 
                     //Else, use outputs from previous layer
-                    else for (int z = 0; z < neuronLayers[j - 1]; z++) Z[j][k] += A[j - 1][z] * W[j][k][z];
+                    else for (int z = 0; z < neuronLayers[j - 1]; z++) ZZ[j][k] += AA[j - 1][z] * WW[j][k][z];
                 }
 
                 //Activation Function: Leaky ReLU
-                A[j][k] = (Z[j][k] > 0) ? Z[j][k] : 0.01f * Z[j][k];
+                AA[j][k] = (ZZ[j][k] > 0) ? ZZ[j][k] : 0.01f * ZZ[j][k];
             }
         }
 
         // Calculate Abs Average Error
-        eTestingAvg += fabs((y[i] - Z[layers - 1][0]) / y[i]);
+        eTestingAvg += fabs((y[i] - ZZ[layers - 1][0]) / y[i]);
     }
 
     // Calculate Average Error for Epoch
     eTestingAvg = (eTestingAvg / TESTING_SIZE) * 100;
 
-    printf("Training Final Error: %.2f | Testing Average Error: %.2f\n", eTrainingAvg, eTestingAvg);
+    printf("Testing Average Error: %.2f\n", eTestingAvg);
+}
+
+void freeMemory(float ***W, float **A, float **B, float **Z, float **D) {
 
     //Free Allocated Memory
     for (int i = 0; i < layers; i++) {
@@ -478,6 +509,4 @@ int main() {
     free(D);
 
     printf("Memory Freed: Program Complete\n");
-
-    return 0;
 }
