@@ -13,7 +13,7 @@
 
 //Training
 #define EPOCHS 1000                  //Amount of Times to Go Through Entire Dataset
-#define LEARNING_RATE 0.01            //How Fast Weights change based on Error
+#define LEARNING_RATE 0.3            //How Fast Weights change based on Error
 #define PRINT_INTERVAL 5           //How Often to Print Results (in Epochs)
 #define MIN_STOPPING_EPOCH 50        //Minimum Epochs before Early Stopping can Occur
 #define dropoutChance  0.5           //Chance to drop each neuron during training - 0 is 0%, 1 is 100% change of dropping
@@ -35,7 +35,7 @@ char optimizer = 'N';
 //N = None           | Optimal Learning Rate = 0.2
 
 //Activation Function
-char activationFunction = 'S';
+char activationFunction = 'L';
 //L = Leaky ReLU
 //R = ReLU
 //S = Sigmoid
