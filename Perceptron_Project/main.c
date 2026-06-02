@@ -1,13 +1,13 @@
 #include "neuralNetwork.h"
 
-//Data
+//Data Parameters
 #define DATA_SIZE 20                //Amount of Data Points
 #define INPUT_SIZE 3                //Number of Different Inputs / Parameters
 #define TRAINING_SIZE 15            //How many data points to use for training
 
 int main() {
 
-    //INPUTS: Sq footage, bedrooms, yard size
+    //INPUTS: Ex. Sq footage, bedrooms, yard size
     float x[DATA_SIZE][INPUT_SIZE] = {
         {850, 1, 500},
         {1200, 2, 1000},
@@ -30,24 +30,22 @@ int main() {
         {3200, 5, 3500},
         {1900, 3, 1800}};
 
-    //Ex. Result Price ($)
-    //Linear Labels
-    //float y[] = {120000, 185000, 140000, 280000, 350000, 230000, 500000, 160000, 420000, 95000, 270000, 470000, 200000, 330000, 75000, 255000, 390000, 155000, 540000, 300000};
-
-    //Non-Linear Labels
+    //LABELS: Ex. Result Price ($)
     float y[] = {95000, 210000, 125000, 480000, 890000, 370000, 2100000, 175000, 1400000, 72000, 460000, 1850000, 240000, 750000, 52000, 420000, 1150000, 162000, 2800000, 580000};
 
     //Architecture
     int neuronLayers[] = {50, 20, 1};    //Array of Neuron Counts for Each Layer
     int layers = 3;
 
-    //Create Data
+    //Copy data to seperate struct and heap allocate
     dataSet *data = createDataSet((float *)x, y, DATA_SIZE, INPUT_SIZE, TRAINING_SIZE);
 
-    //Create all variables for network
+    //Create all variables for network on heap, normalize data, and initialize weights and biases
     Network *net = createNetwork(neuronLayers, data, layers);
 
-    //Variables -- Declare any neededed
+    // -------- Variables ----- 
+    //Declare any neededed. All variables have default values set in createNetwork function, but can be changed here. More features and variables can be found in createNetwork for more advanced control.
+
     net->EPOCHS = 1000;                  //Amount of Times to Go Through Entire Dataset
     net->LEARNING_RATE = 0.2;            //How Fast Weights change based on Error
     net->PRINT_INTERVAL = 100;           //How Often to Print Results (in Epochs)
@@ -71,13 +69,16 @@ int main() {
     //Test Network
     testNetwork(net, data);
 
-    //Try Predicting an Output
+    //Predict an output given new inputs
     float test[] = {0.5, 0.5, 0.5};
     float prediction = predictOutput(net, test, data);
 
     //Free memory when program is done
     freeMemory(net);
     freeDataSet(data);
+
+    //Final Print
+    printf("Program Complete\n");
 
     return 0;
 }

@@ -7,11 +7,11 @@ dataSet* createDataSet(float *xFlat, float *y, int dataSize, int inputSize, int 
     data->trainingSize = trainingSize;
     data->testingSize  = dataSize - trainingSize;
 
-    // Copy labels
+    //Copy labels to array on heap
     data->y = malloc(sizeof(float) * dataSize);
     memcpy(data->y, y, sizeof(float) * dataSize);
 
-    // Build float** from the flat row-major layout of the user's 2D array
+    //Build 2d array of data from 1d array
     data->x = malloc(sizeof(float *) * dataSize);
     for (int i = 0; i < dataSize; i++) {
         data->x[i] = malloc(sizeof(float) * inputSize);
@@ -568,6 +568,8 @@ void freeDataSet(dataSet *data) {
     free(data->x);
     free(data->y);
     free(data);
+
+    printf("Data Memory Freed\n");
 }
 
 void freeMemory(Network *net) {
@@ -589,5 +591,5 @@ void freeMemory(Network *net) {
     free(net->A);
     free(net->D);
 
-    printf("Memory Freed: Program Complete\n");
+    printf("Network Memory Freed\n");
 }
