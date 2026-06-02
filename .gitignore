@@ -1,3 +1,5 @@
+*.exe
+main.exe
 /main.exe
 /sorting.c
 /perceptronRunners.c
