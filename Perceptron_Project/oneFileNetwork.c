@@ -1,4 +1,166 @@
-#include "neuralNetwork.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <math.h>
+#include <time.h>
+#include <string.h>
+
+//Data
+#define DATA_SIZE 20                //Amount of Data Points
+#define INPUT_SIZE 3                //Number of Different Inputs / Parameters
+#define TRAINING_SIZE 15            //How many data points to use for training
+
+//Network Struct
+typedef struct {
+
+    //Parameters
+    float ***W;
+    float **B;
+
+    //Adam Optimizer Parameters
+    float ***Velocity;
+    float **VelocityB;
+    float ***Scaling;
+    float **ScalingB;
+
+    //Values
+    float **Z;
+    float **A;
+    float **D;
+    float *maxValues;
+    int layers;
+    int *neuronLayers;
+
+    //Training
+    int EPOCHS;                  //Amount of Times to Go Through Entire Dataset
+    float LEARNING_RATE;            //How Fast Weights change based on Error
+    int PRINT_INTERVAL;           //How Often to Print Results (in Epochs)
+    int MIN_STOPPING_EPOCH;        //Minimum Epochs before Early Stopping can Occur
+
+    //Feature Hyperparameters
+    float dropoutChance;           //Chance to drop each neuron during training - 0 is 0%, 1 is 100% change of dropping
+    float maxNorm;                  //Maximum norm for weights if maxNormRegulation is enabled
+    float momentumDecay;           //Momentum factor
+    float scalingDecay;          //Scaling factor for learning rate decay
+    float clip;                    //Value to clip gradients for sigmoid activation function to prevent exploding gradients
+
+    //Features
+    bool earlyStopping;          //Whether to Stop Training if Error stops decreasing
+    bool dropout;                //Whether to randomly drop neurons during training to prevent overfitting
+    bool maxNormRegulation;      //Whether to cap weights to prevent exploding gradients and overfitting
+
+    //Optimizer
+    char optimizer;
+    //A = Adam Optimizer | Optimal Learning Rate = 0.0003
+    //R = RMSProp        | Optimal Learning Rate = 0.00005
+    //M = Momentum       | Optimal Learning Rate = 0.5
+    //N = None           | Optimal Learning Rate = 0.2
+
+    //Activation Function
+    char activationFunction;
+    //L = Leaky ReLU
+    //R = ReLU
+    //S = Sigmoid
+
+} Network;
+
+//Struct for user data
+typedef struct {
+    float **x;
+    float  *y;
+    int dataSize;
+    int inputSize;
+    int trainingSize;
+    int testingSize;
+} dataSet;
+
+//Function Prototypes
+dataSet* createDataSet(float *xFlat, float *y, int dataSize, int inputSize, int trainingSize);
+void freeDataSet(dataSet *data);
+void testNetwork(Network *net, dataSet *data);
+void freeMemory(Network *net);
+float predictOutput(Network *net, float *Inputs, dataSet *data);
+Network* creatNetwork(int *neuronLayers, dataSet *data, int layers);
+void trainNetwork(Network *net, dataSet *data);
+
+int main() {
+
+    //INPUTS: Sq footage, bedrooms, yard size
+    float x[DATA_SIZE][INPUT_SIZE] = {
+        {850, 1, 500},
+        {1200, 2, 1000},
+        {950, 2, 750},
+        {1800, 3, 1500},
+        {2200, 4, 2000},
+        {1500, 3, 1200},
+        {3000, 5, 3000},
+        {1100, 2, 800},
+        {2600, 4, 2500},
+        {700, 1, 400},
+        {1750, 3, 1300},
+        {2900, 4, 2800},
+        {1350, 2, 900},
+        {2100, 3, 1600},
+        {500, 1, 600},
+        {1650, 3, 1400},
+        {2400, 4, 2200},
+        {1050, 2, 850},
+        {3200, 5, 3500},
+        {1900, 3, 1800}};
+
+    //Ex. Result Price ($)
+    //Linear Labels
+    //float y[] = {120000, 185000, 140000, 280000, 350000, 230000, 500000, 160000, 420000, 95000, 270000, 470000, 200000, 330000, 75000, 255000, 390000, 155000, 540000, 300000};
+
+    //Non-Linear Labels
+    float y[] = {95000, 210000, 125000, 480000, 890000, 370000, 2100000, 175000, 1400000, 72000, 460000, 1850000, 240000, 750000, 52000, 420000, 1150000, 162000, 2800000, 580000};
+
+    //Architecture
+    int neuronLayers[] = {50, 20, 1};    //Array of Neuron Counts for Each Layer
+
+    int layers = 3;
+
+    //Create Data
+    dataSet *data = createDataSet((float *)x, y, DATA_SIZE, INPUT_SIZE, TRAINING_SIZE);
+
+    //Create all variables for network
+    Network *net = creatNetwork(neuronLayers, data, layers);
+
+    //Variables -- Declare any neededed
+    net->EPOCHS = 1000;                  //Amount of Times to Go Through Entire Dataset
+    net->LEARNING_RATE = 0.2;            //How Fast Weights change based on Error
+    net->PRINT_INTERVAL = 100;           //How Often to Print Results (in Epochs)
+
+    //Optimizer
+    net->optimizer = 'N';
+    //A = Adam Optimizer | Optimal Learning Rate = 0.0003
+    //R = RMSProp        | Optimal Learning Rate = 0.00005
+    //M = Momentum       | Optimal Learning Rate = 0.5
+    //N = None           | Optimal Learning Rate = 0.2
+
+    //Activation Function
+    net->activationFunction = 'L';
+    //L = Leaky ReLU
+    //R = ReLU
+    //S = Sigmoid
+
+    //Train Network
+    trainNetwork(net, data);
+
+    //Test Network
+    testNetwork(net, data);
+
+    //Try Predicting an Output
+    float test[] = {0.5, 0.5, 0.5};
+    float prediction = predictOutput(net, test, data);
+
+    //Free memory when program is done
+    freeMemory(net);
+
+    freeDataSet(data);
+
+    return 0;
+}
 
 dataSet* createDataSet(float *xFlat, float *y, int dataSize, int inputSize, int trainingSize) {
     dataSet *data = malloc(sizeof(dataSet));
