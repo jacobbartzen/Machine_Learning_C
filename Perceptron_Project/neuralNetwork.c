@@ -21,7 +21,7 @@ dataSet* createDataSet(float *xFlat, float *y, int dataSize, int inputSize, int 
     return data;
 }
 
-Network* creatNetwork(int *neuronLayers, dataSet *data, int layers) {
+Network* createNetwork(int *neuronLayers, dataSet *data, int layers) {
     Network* net = malloc(sizeof(Network));
 
     //Find Amount of Layers

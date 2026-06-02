@@ -78,7 +78,7 @@ void freeDataSet(dataSet *data);
 void testNetwork(Network *net, dataSet *data);
 void freeMemory(Network *net);
 float predictOutput(Network *net, float *Inputs, dataSet *data);
-Network* creatNetwork(int *neuronLayers, dataSet *data, int layers);
+Network* createNetwork(int *neuronLayers, dataSet *data, int layers);
 void trainNetwork(Network *net, dataSet *data);
 
 #endif

@@ -45,7 +45,7 @@ int main() {
     dataSet *data = createDataSet((float *)x, y, DATA_SIZE, INPUT_SIZE, TRAINING_SIZE);
 
     //Create all variables for network
-    Network *net = creatNetwork(neuronLayers, data, layers);
+    Network *net = createNetwork(neuronLayers, data, layers);
 
     //Variables -- Declare any neededed
     net->EPOCHS = 1000;                  //Amount of Times to Go Through Entire Dataset
