@@ -34,6 +34,7 @@ typedef struct {
     float LEARNING_RATE;            //How Fast Weights change based on Error
     int PRINT_INTERVAL;           //How Often to Print Results (in Epochs)
     int MIN_STOPPING_EPOCH;        //Minimum Epochs before Early Stopping can Occur
+    int inputSize;
 
     //Feature Hyperparameters
     float dropoutChance;           //Chance to drop each neuron during training - 0 is 0%, 1 is 100% change of dropping
@@ -75,10 +76,15 @@ typedef struct {
 //Function Prototypes
 dataSet* createDataSet(float *xFlat, float *y, int dataSize, int inputSize, int trainingSize);
 void freeDataSet(dataSet *data);
+
 void testNetwork(Network *net, dataSet *data);
 void freeMemory(Network *net);
 float predictOutput(Network *net, float *Inputs, dataSet *data);
 Network* createNetwork(int *neuronLayers, dataSet *data, int layers);
 void trainNetwork(Network *net, dataSet *data);
+
+int saveWeights(Network *net, const char *filename);
+int loadWeights(Network *net, const char *filename);
+
 
 #endif

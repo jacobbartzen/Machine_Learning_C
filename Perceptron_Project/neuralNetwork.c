@@ -7,11 +7,11 @@ dataSet* createDataSet(float *xFlat, float *y, int dataSize, int inputSize, int 
     data->trainingSize = trainingSize;
     data->testingSize  = dataSize - trainingSize;
 
-    //Copy labels to array on heap
+    // Copy labels
     data->y = malloc(sizeof(float) * dataSize);
     memcpy(data->y, y, sizeof(float) * dataSize);
 
-    //Build 2d array of data from 1d array
+    // Build float** from the flat row-major layout of the user's 2D array
     data->x = malloc(sizeof(float *) * dataSize);
     for (int i = 0; i < dataSize; i++) {
         data->x[i] = malloc(sizeof(float) * inputSize);
@@ -102,6 +102,7 @@ Network* createNetwork(int *neuronLayers, dataSet *data, int layers) {
     net->momentumDecay = 0.90;           //Momentum factor
     net->scalingDecay = 0.990;           //Scaling factor for learning rate decay
     net->clip = 0.5f;                    //Value to clip gradients for sigmoid activation function to prevent exploding gradients
+    net->inputSize = data->inputSize;
 
     //Features
     net->earlyStopping = false;          //Whether to Stop Training if Error stops decreasing
@@ -568,8 +569,6 @@ void freeDataSet(dataSet *data) {
     free(data->x);
     free(data->y);
     free(data);
-
-    printf("Data Memory Freed\n");
 }
 
 void freeMemory(Network *net) {
@@ -591,5 +590,75 @@ void freeMemory(Network *net) {
     free(net->A);
     free(net->D);
 
-    printf("Network Memory Freed\n");
+    printf("Memory Freed: Program Complete\n");
+}
+
+int saveWeights(Network *net, const char *filename) {
+
+    FILE *file = fopen(filename, "wb");
+    if (!file) {
+        fprintf(stderr, "Error: Could not open file %s for writing\n", filename);
+        return 0;
+    }
+
+    //Write number of layers
+    fwrite(&net->layers, sizeof(int), 1, file);
+
+    //Write number of neurons in each layer
+    fwrite(net->neuronLayers, sizeof(int), net->layers, file);
+
+    //Write weights and biases
+    for (int i = 0; i < net->layers; i++) {
+        for (int j = 0; j < net->neuronLayers[i]; j++) {
+            fwrite(net->B[i] + j, sizeof(float), 1, file); // Write bias
+            int weightCount = (i == 0) ? net->inputSize : net->neuronLayers[i - 1];
+            fwrite(net->W[i][j], sizeof(float), weightCount, file); // Write weights
+        }
+    }
+
+    fclose(file);
+    return 1;
+}
+
+int loadWeights(Network *net, const char *filename) {
+
+    FILE *file = fopen(filename, "rb");
+    if (!file) {
+        fprintf(stderr, "Error: Could not open file %s for reading\n", filename);
+        return 0;
+    }
+
+    //Read number of layers
+    int layers;
+    fread(&layers, sizeof(int), 1, file);
+    if (layers != net->layers) {
+        fprintf(stderr, "Error: Layer count mismatch. Expected %d, Read: %d\n", net->layers, layers);
+        fclose(file);
+        return 0;
+    }
+
+    //Read number of neurons in each layer
+    int *neuronLayers = malloc(sizeof(int) * layers);
+    fread(neuronLayers, sizeof(int), layers, file);
+    for (int i = 0; i < layers; i++) {
+        if (neuronLayers[i] != net->neuronLayers[i]) {
+            fprintf(stderr, "Error: Neuron count mismatch in layer %d. Expected %d, Read: %d\n", i, net->neuronLayers[i], neuronLayers[i]);
+            free(neuronLayers);
+            fclose(file);
+            return 0;
+        }
+    }
+    free(neuronLayers);
+
+    //Read weights and biases
+    for (int i = 0; i < net->layers; i++) {
+        for (int j = 0; j < net->neuronLayers[i]; j++) {
+            fread(net->B[i] + j, sizeof(float), 1, file); // Read bias
+            int weightCount = (i == 0) ? net->inputSize : net->neuronLayers[i - 1];
+            fread(net->W[i][j], sizeof(float), weightCount, file); // Read weights
+        }
+    }
+
+    fclose(file);
+    return 1;
 }

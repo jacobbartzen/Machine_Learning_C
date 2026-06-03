@@ -7,7 +7,7 @@
 
 int main() {
 
-    //INPUTS: Ex. Sq footage, bedrooms, yard size
+    //INPUTS: Sq footage, bedrooms, yard size
     float x[DATA_SIZE][INPUT_SIZE] = {
         {850, 1, 500},
         {1200, 2, 1000},
@@ -30,7 +30,11 @@ int main() {
         {3200, 5, 3500},
         {1900, 3, 1800}};
 
-    //LABELS: Ex. Result Price ($)
+    //Ex. Result Price ($)
+    //Linear Labels
+    //float y[] = {120000, 185000, 140000, 280000, 350000, 230000, 500000, 160000, 420000, 95000, 270000, 470000, 200000, 330000, 75000, 255000, 390000, 155000, 540000, 300000};
+
+    //Non-Linear Labels
     float y[] = {95000, 210000, 125000, 480000, 890000, 370000, 2100000, 175000, 1400000, 72000, 460000, 1850000, 240000, 750000, 52000, 420000, 1150000, 162000, 2800000, 580000};
 
     //Architecture
@@ -45,7 +49,6 @@ int main() {
 
     // -------- Variables ----- 
     //Declare any neededed. All variables have default values set in createNetwork function, but can be changed here. More features and variables can be found in createNetwork for more advanced control.
-
     net->EPOCHS = 1000;                  //Amount of Times to Go Through Entire Dataset
     net->LEARNING_RATE = 0.2;            //How Fast Weights change based on Error
     net->PRINT_INTERVAL = 100;           //How Often to Print Results (in Epochs)
@@ -63,22 +66,26 @@ int main() {
     //R = ReLU
     //S = Sigmoid
 
+    //Load Weights
+    if (loadWeights(net, "networkWeights.bin")) printf("Weights loaded successfully.\n");
+
     //Train Network
     trainNetwork(net, data);
+
+    //Save Weights
+    if (saveWeights(net, "networkWeights.bin")) printf("Weights saved successfully.\n");
 
     //Test Network
     testNetwork(net, data);
 
-    //Predict an output given new inputs
+    //Try Predicting an Output
     float test[] = {0.5, 0.5, 0.5};
     float prediction = predictOutput(net, test, data);
 
     //Free memory when program is done
     freeMemory(net);
-    freeDataSet(data);
 
-    //Final Print
-    printf("Program Complete\n");
+    freeDataSet(data);
 
     return 0;
 }

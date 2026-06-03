@@ -36,6 +36,7 @@ typedef struct {
     float LEARNING_RATE;            //How Fast Weights change based on Error
     int PRINT_INTERVAL;           //How Often to Print Results (in Epochs)
     int MIN_STOPPING_EPOCH;        //Minimum Epochs before Early Stopping can Occur
+    int inputSize;
 
     //Feature Hyperparameters
     float dropoutChance;           //Chance to drop each neuron during training - 0 is 0%, 1 is 100% change of dropping
@@ -77,11 +78,15 @@ typedef struct {
 //Function Prototypes
 dataSet* createDataSet(float *xFlat, float *y, int dataSize, int inputSize, int trainingSize);
 void freeDataSet(dataSet *data);
+
 void testNetwork(Network *net, dataSet *data);
 void freeMemory(Network *net);
 float predictOutput(Network *net, float *Inputs, dataSet *data);
 Network* createNetwork(int *neuronLayers, dataSet *data, int layers);
 void trainNetwork(Network *net, dataSet *data);
+
+int saveWeights(Network *net, const char *filename);
+int loadWeights(Network *net, const char *filename);
 
 int main() {
 
@@ -117,16 +122,16 @@ int main() {
 
     //Architecture
     int neuronLayers[] = {50, 20, 1};    //Array of Neuron Counts for Each Layer
-
     int layers = 3;
 
-    //Create Data
+    //Copy data to seperate struct and heap allocate
     dataSet *data = createDataSet((float *)x, y, DATA_SIZE, INPUT_SIZE, TRAINING_SIZE);
 
-    //Create all variables for network
-    Network *net = creatNetwork(neuronLayers, data, layers);
+    //Create all variables for network on heap, normalize data, and initialize weights and biases
+    Network *net = createNetwork(neuronLayers, data, layers);
 
-    //Variables -- Declare any neededed
+    // -------- Variables ----- 
+    //Declare any neededed. All variables have default values set in createNetwork function, but can be changed here. More features and variables can be found in createNetwork for more advanced control.
     net->EPOCHS = 1000;                  //Amount of Times to Go Through Entire Dataset
     net->LEARNING_RATE = 0.2;            //How Fast Weights change based on Error
     net->PRINT_INTERVAL = 100;           //How Often to Print Results (in Epochs)
@@ -144,8 +149,14 @@ int main() {
     //R = ReLU
     //S = Sigmoid
 
+    //Load Weights
+    if (loadWeights(net, "networkWeights.bin")) printf("Weights loaded successfully.\n");
+
     //Train Network
     trainNetwork(net, data);
+
+    //Save Weights
+    if (saveWeights(net, "networkWeights.bin")) printf("Weights saved successfully.\n");
 
     //Test Network
     testNetwork(net, data);
@@ -264,6 +275,7 @@ Network* createNetwork(int *neuronLayers, dataSet *data, int layers) {
     net->momentumDecay = 0.90;           //Momentum factor
     net->scalingDecay = 0.990;           //Scaling factor for learning rate decay
     net->clip = 0.5f;                    //Value to clip gradients for sigmoid activation function to prevent exploding gradients
+    net->inputSize = data->inputSize;
 
     //Features
     net->earlyStopping = false;          //Whether to Stop Training if Error stops decreasing
@@ -752,4 +764,74 @@ void freeMemory(Network *net) {
     free(net->D);
 
     printf("Memory Freed: Program Complete\n");
+}
+
+int saveWeights(Network *net, const char *filename) {
+
+    FILE *file = fopen(filename, "wb");
+    if (!file) {
+        fprintf(stderr, "Error: Could not open file %s for writing\n", filename);
+        return 0;
+    }
+
+    //Write number of layers
+    fwrite(&net->layers, sizeof(int), 1, file);
+
+    //Write number of neurons in each layer
+    fwrite(net->neuronLayers, sizeof(int), net->layers, file);
+
+    //Write weights and biases
+    for (int i = 0; i < net->layers; i++) {
+        for (int j = 0; j < net->neuronLayers[i]; j++) {
+            fwrite(net->B[i] + j, sizeof(float), 1, file); // Write bias
+            int weightCount = (i == 0) ? net->inputSize : net->neuronLayers[i - 1];
+            fwrite(net->W[i][j], sizeof(float), weightCount, file); // Write weights
+        }
+    }
+
+    fclose(file);
+    return 1;
+}
+
+int loadWeights(Network *net, const char *filename) {
+
+    FILE *file = fopen(filename, "rb");
+    if (!file) {
+        fprintf(stderr, "Error: Could not open file %s for reading\n", filename);
+        return 0;
+    }
+
+    //Read number of layers
+    int layers;
+    fread(&layers, sizeof(int), 1, file);
+    if (layers != net->layers) {
+        fprintf(stderr, "Error: Layer count mismatch. Expected %d, Read: %d\n", net->layers, layers);
+        fclose(file);
+        return 0;
+    }
+
+    //Read number of neurons in each layer
+    int *neuronLayers = malloc(sizeof(int) * layers);
+    fread(neuronLayers, sizeof(int), layers, file);
+    for (int i = 0; i < layers; i++) {
+        if (neuronLayers[i] != net->neuronLayers[i]) {
+            fprintf(stderr, "Error: Neuron count mismatch in layer %d. Expected %d, Read: %d\n", i, net->neuronLayers[i], neuronLayers[i]);
+            free(neuronLayers);
+            fclose(file);
+            return 0;
+        }
+    }
+    free(neuronLayers);
+
+    //Read weights and biases
+    for (int i = 0; i < net->layers; i++) {
+        for (int j = 0; j < net->neuronLayers[i]; j++) {
+            fread(net->B[i] + j, sizeof(float), 1, file); // Read bias
+            int weightCount = (i == 0) ? net->inputSize : net->neuronLayers[i - 1];
+            fread(net->W[i][j], sizeof(float), weightCount, file); // Read weights
+        }
+    }
+
+    fclose(file);
+    return 1;
 }
