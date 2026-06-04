@@ -558,6 +558,7 @@ void trainNetwork(Network *net, dataSet *data) {
 
                             //RMSProp Optimizer
                             case 'R':
+                            
                                 //Calculate 2nd moment
                                 net->Scaling[j][k][z] = net->scalingDecay * net->Scaling[j][k][z] + (1 - net->scalingDecay) * currentGradient * currentGradient;
 
