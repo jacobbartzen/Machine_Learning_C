@@ -634,12 +634,13 @@ Momentum is designed to speed up learning by adding another term to weight updat
 
 Code:   
 ```c
- 
-//Calculate Momentum
-net-\>Velocity\[j\]\[k\]\[z\] \= net-\>momentumDecay \* net-\>Velocity\[j\]\[k\]\[z\] \+ (1 \- net-\>momentumDecay) \* currentGradient;
 
-//Update Weights  
-net-\>W\[j\]\[k\]\[z\] \+= net-\>Velocity\[j\]\[k\]\[z\] \* net-\>LEARNING\_RATE;
+ //Calculate Momentum
+net->Velocity[j][k][z] = net->momentumDecay * net->Velocity[j][k][z] + (1 - net->momentumDecay) * currentGradient;
+
+//Update Weights
+net->W[j][k][z] += net->Velocity[j][k][z] * net->LEARNING_RATE;
+
  
 ```
 
@@ -650,12 +651,12 @@ RMSProp is an algorithm that varies the learning rate for each weight based on t
 Code: 
 
 ```c
- 
-//Calculate 2nd moment  
-net-\>Scaling\[j\]\[k\]\[z\] \= net-\>scalingDecay \* net-\>Scaling\[j\]\[k\]\[z\] \+ (1 \- net-\>scalingDecay) \* currentGradient \* currentGradient;
 
-//Update Weights  
-net-\>W\[j\]\[k\]\[z\] \+= net-\>LEARNING\_RATE / (sqrt(net-\>Scaling\[j\]\[k\]\[z\]) \+ 1e-8) \* currentGradient;
+//Calculate 2nd moment
+net->Scaling[j][k][z] = net->scalingDecay * net->Scaling[j][k][z] + (1 - net->scalingDecay) * currentGradient * currentGradient;
+
+//Update Weights
+net->W[j][k][z] += net->LEARNING_RATE / (sqrt(net->Scaling[j][k][z]) + 1e-8) * currentGradient;
 
 ```
 
@@ -667,16 +668,17 @@ Code:
 
 ```c
 
-//Calculate 1st and 2nd moments  
-net-\>Velocity\[j\]\[k\]\[z\] \= net-\>momentumDecay \* net-\>Velocity\[j\]\[k\]\[z\] \+ (1 \- net-\>momentumDecay) \* currentGradient;  
-net-\>Scaling\[j\]\[k\]\[z\] \= net-\>scalingDecay \* net-\>Scaling\[j\]\[k\]\[z\] \+ (1 \- net-\>scalingDecay) \* currentGradient \* currentGradient;
+//Calculate 1st and 2nd moments
+net->Velocity[j][k][z] = net->momentumDecay * net->Velocity[j][k][z] + (1 - net->momentumDecay) * currentGradient;
+net->Scaling[j][k][z] = net->scalingDecay * net->Scaling[j][k][z] + (1 - net->scalingDecay) * currentGradient * currentGradient;
 
-//Bias Correction for Adam  
-correctedA \= net-\>Velocity\[j\]\[k\]\[z\] / (1 \- pow(net-\>momentumDecay, data-\>trainingSize \* epoch));  
-correctedB \= net-\>Scaling\[j\]\[k\]\[z\] / (1 \- pow(net-\>scalingDecay, data-\>trainingSize \* epoch));
+//Bias Correction for Adam
+correctedA = net->Velocity[j][k][z] / (1 - pow(net->momentumDecay, data->trainingSize * epoch));
+correctedB = net->Scaling[j][k][z] / (1 - pow(net->scalingDecay, data->trainingSize * epoch));
 
-//Update Weight with Adam  
-net-\>W\[j\]\[k\]\[z\] \+= net-\>LEARNING\_RATE / (sqrt(correctedB) \+ 1e-8) \* correctedA;
+//Update Weight with Adam
+net->W[j][k][z] += net->LEARNING_RATE / (sqrt(correctedB) + 1e-8) * correctedA;
+
 
 ```
 
