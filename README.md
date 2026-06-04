@@ -567,6 +567,8 @@ Hyperparameters are the user-adjusted variables that can control how the network
 
 ## Activation Function
 
+![Common Activation Functions](Perceptron_Project/images/activationFunctions.png)
+
 An activation function is what allows a network to generalize to non-linear data. An activation function is typically represented as `A = f(z)` where z is the preactivation value. Activation functions must be computationally light, both for the forward pass and while finding the derivative for backpropagation. This section will cover some of the most common activation functions.
 
 ### ReLU
